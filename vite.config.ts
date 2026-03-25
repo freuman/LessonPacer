@@ -3,8 +3,9 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
+  base: '/LessonPacer/', // required for GitHub Pages subdirectory deployment
   build: {
-    outDir: 'docs', // GitHub Pages requires 'docs' or root
+    outDir: 'docs',
   },
   server: {
     port: 5175,
