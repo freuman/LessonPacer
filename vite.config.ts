@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
-  base: '/LessonPacer/', // required for GitHub Pages subdirectory deployment
+  base: '/', // custom domain sits at root
   build: {
     outDir: 'docs',
   },
