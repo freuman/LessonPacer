@@ -37,9 +37,10 @@ const INITIAL_PRESETS: Preset[] = [
     name: '40-min Lesson',
     totalMinutes: 40,
     segments: [
-      { id: 'a1', name: 'Activity', duration: 20, color: COLORS[1] },
-      { id: 'a2', name: 'Debrief', duration: 10, color: COLORS[2] },
-      { id: 'a3', name: 'Check Your Understanding', duration: 10, color: COLORS[3] },
+      { id: 'a1', name: 'Do Now',       duration:  5, color: COLORS[0] },
+      { id: 'a2', name: 'Activity',     duration: 25, color: COLORS[1] },
+      { id: 'a3', name: 'Wrap Up',      duration:  5, color: COLORS[2] },
+      { id: 'a4', name: 'Exit Ticket',  duration:  5, color: COLORS[3] },
     ],
   },
   {
@@ -47,9 +48,10 @@ const INITIAL_PRESETS: Preset[] = [
     name: '55-min Lesson',
     totalMinutes: 55,
     segments: [
-      { id: 'b1', name: 'Activity', duration: 25, color: COLORS[1] },
-      { id: 'b2', name: 'Debrief', duration: 15, color: COLORS[2] },
-      { id: 'b3', name: 'Check Your Understanding', duration: 15, color: COLORS[3] },
+      { id: 'b1', name: 'Do Now',       duration:  5, color: COLORS[0] },
+      { id: 'b2', name: 'Activity',     duration: 35, color: COLORS[1] },
+      { id: 'b3', name: 'Wrap Up',      duration: 10, color: COLORS[2] },
+      { id: 'b4', name: 'Exit Ticket',  duration:  5, color: COLORS[3] },
     ],
   },
 ];
@@ -217,20 +219,20 @@ function SegmentBar({
 export default function App() {
   // Persistent state
   const [presets, setPresets] = useState<Preset[]>(() => {
-    const stored = loadLS<Preset[]>('lt-presets', INITIAL_PRESETS);
+    const stored = loadLS<Preset[]>('lt-presets-v2', INITIAL_PRESETS);
     return stored.map(p => ({
       ...p,
       totalMinutes: p.totalMinutes ?? p.segments.reduce((s, g) => s + g.duration, 0),
     }));
   });
   const [activeId, setActiveId] = useState<string>(() => {
-    const ps = loadLS<Preset[]>('lt-presets', INITIAL_PRESETS);
-    const lid = loadLS<string>('lt-last', INITIAL_PRESETS[0].id);
+    const ps = loadLS<Preset[]>('lt-presets-v2', INITIAL_PRESETS);
+    const lid = loadLS<string>('lt-last-v2', INITIAL_PRESETS[0].id);
     return ps.find(p => p.id === lid) ? lid : (ps[0]?.id ?? '');
   });
 
-  useEffect(() => { saveLS('lt-presets', presets); }, [presets]);
-  useEffect(() => { saveLS('lt-last', activeId); }, [activeId]);
+  useEffect(() => { saveLS('lt-presets-v2', presets); }, [presets]);
+  useEffect(() => { saveLS('lt-last-v2', activeId); }, [activeId]);
 
   const activePreset = presets.find(p => p.id === activeId) ?? presets[0];
   const presetSegments = activePreset?.segments ?? [];
@@ -488,6 +490,26 @@ export default function App() {
     setEditing(false);
   };
 
+  const createNewPreset = () => {
+    const np: Preset = {
+      id: genId(),
+      name: 'New Pacer',
+      totalMinutes: 40,
+      segments: [
+        { id: genId(), name: 'Do Now',      duration:  5, color: COLORS[0] },
+        { id: genId(), name: 'Activity',    duration: 25, color: COLORS[1] },
+        { id: genId(), name: 'Wrap Up',     duration:  5, color: COLORS[2] },
+        { id: genId(), name: 'Exit Ticket', duration:  5, color: COLORS[3] },
+      ],
+    };
+    setPresets(ps => [...ps, np]);
+    setActiveId(np.id);
+    setEditSegs(np.segments.map(s => ({ ...s })));
+    setEditName(np.name);
+    setEditTotalMinutes(np.totalMinutes);
+    setEditing(true);
+  };
+
   const deletePreset = (id: string) => {
     if (presets.length <= 1) return;
     const rem = presets.filter(p => p.id !== id);
@@ -640,7 +662,7 @@ export default function App() {
           ☕ Buy me a coffee
         </a>
         <div className="setup-card">
-          <h1>Lesson Timer</h1>
+          <h1 className="app-title">Lesson Pacer</h1>
 
           <div className="preset-tabs">
             {presets.map(p => (
@@ -651,6 +673,7 @@ export default function App() {
                 )}
               </div>
             ))}
+            <button className="new-pacer-btn" onClick={createNewPreset} title="Create a new pacer from scratch">+ New Pacer</button>
           </div>
 
           <div className="seg-list-preview">

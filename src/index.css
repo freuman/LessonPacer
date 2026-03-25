@@ -35,6 +35,19 @@ h1 {
   margin-bottom: 28px;
 }
 
+h1.app-title {
+  font-family: 'Space Grotesk', 'Inter', system-ui, sans-serif;
+  font-size: 2.6rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  background: linear-gradient(120deg, #60a5fa 0%, #a78bfa 55%, #fb923c 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 28px;
+  padding-right: 180px; /* avoid overlap with fixed BMC button */
+}
+
 /* ── Preset tabs ── */
 .preset-tabs {
   display: flex;
@@ -695,6 +708,77 @@ h1 {
 
 .instructions strong {
   color: #64748b;
+}
+
+/* ── New Pacer button ── */
+.new-pacer-btn {
+  display: flex;
+  align-items: center;
+  padding: 8px 14px;
+  border-radius: 8px;
+  background: transparent;
+  border: 2px dashed #334155;
+  color: #64748b;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: inherit;
+  white-space: nowrap;
+}
+.new-pacer-btn:hover {
+  border-color: #3b82f6;
+  color: #60a5fa;
+}
+
+/* ── Mobile — iPhone ── */
+@media (max-width: 480px) {
+  .app.running {
+    padding: 12px 10px 12px;
+  }
+
+  .seg-bar { height: 44px; }
+
+  .seg-name-display {
+    font-size: clamp(2rem, 11vw, 3.2rem);
+    margin-bottom: 16px;
+  }
+
+  .timers-row { gap: 12px; }
+
+  .t-value { font-size: clamp(2.6rem, 13vw, 4rem); }
+
+  .t-divider { height: 44px; }
+
+  .next-up { margin-top: 16px; }
+
+  .controls { gap: 5px; }
+
+  .ctrl { width: 42px; height: 42px; font-size: 0.8rem; border-radius: 10px; }
+
+  .ctrl.pause-btn { width: 52px; height: 52px; font-size: 1.1rem; }
+
+  .ctrl.ctrl-label { padding: 0 8px; font-size: 0.72rem; }
+
+  .setup-card { padding: 20px 14px; }
+
+  h1.app-title { font-size: 2rem; }
+}
+
+/* ── Tablet — iPad ── */
+@media (min-width: 481px) and (max-width: 1024px) {
+  .ctrl { width: 58px; height: 58px; }
+  .ctrl.pause-btn { width: 72px; height: 72px; font-size: 1.5rem; }
+  .ctrl.ctrl-label { height: 58px; }
+  .seg-bar { height: 64px; }
+}
+
+/* ── Safe area insets (iPhone notch / home indicator) ── */
+@supports (padding: env(safe-area-inset-bottom)) {
+  .app.running {
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+    padding-top: max(20px, env(safe-area-inset-top));
+  }
 }
 
 /* ── Buy Me a Coffee ── */
