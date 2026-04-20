@@ -33,25 +33,14 @@ const COLORS = ['#4ade80', '#60a5fa', '#fb923c', '#c084fc', '#f472b6', '#34d399'
 
 const INITIAL_PRESETS: Preset[] = [
   {
-    id: 'preset-40',
-    name: '40-min Lesson',
-    totalMinutes: 40,
+    id: 'preset-effl-50',
+    name: 'EFFL - 50 min',
+    totalMinutes: 50,
     segments: [
-      { id: 'a1', name: 'Do Now',       duration:  5, color: COLORS[0] },
-      { id: 'a2', name: 'Activity',     duration: 25, color: COLORS[1] },
-      { id: 'a3', name: 'Wrap Up',      duration:  5, color: COLORS[2] },
-      { id: 'a4', name: 'Exit Ticket',  duration:  5, color: COLORS[3] },
-    ],
-  },
-  {
-    id: 'preset-55',
-    name: '55-min Lesson',
-    totalMinutes: 55,
-    segments: [
-      { id: 'b1', name: 'Do Now',       duration:  5, color: COLORS[0] },
-      { id: 'b2', name: 'Activity',     duration: 35, color: COLORS[1] },
-      { id: 'b3', name: 'Wrap Up',      duration: 10, color: COLORS[2] },
-      { id: 'b4', name: 'Exit Ticket',  duration:  5, color: COLORS[3] },
+      { id: 'e1', name: 'Activity',              duration: 20, color: COLORS[1] },
+      { id: 'e2', name: 'Debrief + Margin Notes', duration: 10, color: COLORS[2] },
+      { id: 'e3', name: 'Quicknotes',            duration:  5, color: COLORS[0] },
+      { id: 'e4', name: 'CYU',                   duration: 15, color: COLORS[3] },
     ],
   },
 ];
