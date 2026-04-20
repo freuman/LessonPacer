@@ -754,8 +754,8 @@ export default function App() {
             <ul>
               <li>Select a preset tab, then click <strong>▶ Start Lesson</strong>.</li>
               <li>The timer keeps running even if you switch tabs or your screen sleeps.</li>
-              <li><strong>⏸</strong> pauses and resumes. <strong>◀ ▶</strong> jump between segments.</li>
-              <li><strong>▶+</strong> skips to the next segment and distributes leftover time to future segments proportionally.</li>
+              <li><strong>⏸</strong> pauses and resumes.</li>
+              <li><strong>▶+</strong> moves to the next segment and distributes leftover time to future segments proportionally.</li>
               <li><strong>Late −1m</strong> subtracts 1 min from the total and scales all remaining segments down proportionally.</li>
               <li>Drag the dividers in the colored bar to resize adjacent segments on the fly.</li>
               <li>Click <strong>✎ Edit Segments</strong> to rename, adjust times, or drag <strong>⠿</strong> to reorder. Segments must sum to total class time before saving.</li>
