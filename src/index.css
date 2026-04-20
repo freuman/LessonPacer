@@ -20,6 +20,16 @@ body {
   flex-direction: column;
 }
 
+/* Editing view — allow scrolling when content exceeds viewport */
+.app.editing {
+  height: auto;
+  min-height: 100vh;
+}
+
+body:has(.app.editing) {
+  overflow-y: auto;
+}
+
 /* ── Setup / Edit shared card ── */
 .setup-card {
   max-width: 640px;
@@ -306,6 +316,29 @@ h1.app-title {
   color: #64748b !important;
 }
 
+/* Drag grip handle for reordering segments */
+.drag-grip {
+  color: #334155;
+  font-size: 1.1rem;
+  cursor: grab;
+  flex-shrink: 0;
+  padding: 0 2px;
+  user-select: none;
+  transition: color 0.15s;
+  line-height: 1;
+}
+.drag-grip:hover { color: #64748b; }
+.drag-grip:active { cursor: grabbing; }
+
+/* Visual feedback while dragging */
+.edit-seg-block.dragging {
+  opacity: 0.3;
+}
+.edit-seg-block.drag-over {
+  border-top: 2px solid #3b82f6;
+  padding-top: 10px;
+}
+
 .edit-row {
   display: flex;
   align-items: center;
@@ -355,6 +388,32 @@ h1.app-title {
   text-align: center;
   font-size: 0.875rem;
   color: #e2e8f0;
+}
+
+/* Typeable number field inside dur-ctrl */
+.dur-input {
+  background: none;
+  border: none;
+  color: #e2e8f0;
+  font-variant-numeric: tabular-nums;
+  width: 32px;
+  text-align: center;
+  font-size: 0.875rem;
+  font-family: inherit;
+  outline: none;
+  padding: 0;
+  -moz-appearance: textfield;
+}
+.dur-input::-webkit-outer-spin-button,
+.dur-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.dur-input:focus { color: #f8fafc; }
+
+.dur-unit {
+  font-size: 0.75rem;
+  color: #64748b;
 }
 
 .remove-btn {

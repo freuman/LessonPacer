@@ -465,6 +465,14 @@ export default function App() {
   const [editSegs, setEditSegs] = useState<Segment[]>([]);
   const [editName, setEditName] = useState('');
   const [editTotalMinutes, setEditTotalMinutes] = useState(0);
+  const [dragIdx, setDragIdx] = useState<number | null>(null);
+  const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
+
+  // Allow body to scroll when edit form exceeds viewport height
+  useEffect(() => {
+    document.body.style.overflow = editing ? 'auto' : '';
+    return () => { document.body.style.overflow = ''; };
+  }, [editing]);
 
   const openEdit = () => {
     setEditSegs((activePreset?.segments ?? []).map(s => ({ ...s })));
@@ -510,6 +518,18 @@ export default function App() {
     setEditing(true);
   };
 
+  const duplicatePreset = () => {
+    if (!activePreset) return;
+    const np: Preset = {
+      ...activePreset,
+      id: genId(),
+      name: `${activePreset.name} (copy)`,
+      segments: activePreset.segments.map(s => ({ ...s, id: genId() })),
+    };
+    setPresets(ps => [...ps, np]);
+    setActiveId(np.id);
+  };
+
   const deletePreset = (id: string) => {
     if (presets.length <= 1) return;
     const rem = presets.filter(p => p.id !== id);
@@ -544,7 +564,7 @@ export default function App() {
     const canBalance = editSegs.length > 0 && editSegs[editSegs.length - 1].duration - diff >= 1;
 
     return (
-      <div className="app">
+      <div className="app editing">
         <div className="setup-card">
           <h1>Edit Segments</h1>
 
@@ -557,16 +577,50 @@ export default function App() {
               <label>Class duration</label>
               <div className="dur-ctrl">
                 <button onClick={() => setEditTotalMinutes(t => Math.max(1, t - 1))}>−</button>
-                <span>{editTotalMinutes} min</span>
+                <input
+                  type="number"
+                  className="dur-input"
+                  value={editTotalMinutes}
+                  min={1}
+                  onChange={e => { const v = parseInt(e.target.value); if (!isNaN(v) && v >= 1) setEditTotalMinutes(v); }}
+                />
+                <span className="dur-unit">min</span>
                 <button onClick={() => setEditTotalMinutes(t => t + 1)}>+</button>
               </div>
             </div>
           </div>
 
           <div className="edit-list" style={{ marginTop: '20px' }}>
-            {editSegs.map(seg => (
-              <div key={seg.id} className="edit-seg-block">
+            {editSegs.map((seg, i) => (
+              <div
+                key={seg.id}
+                className={`edit-seg-block${dragIdx === i ? ' dragging' : ''}${dragOverIdx === i && dragOverIdx !== dragIdx ? ' drag-over' : ''}`}
+                onDragOver={e => { e.preventDefault(); if (dragOverIdx !== i) setDragOverIdx(i); }}
+                onDrop={e => {
+                  e.preventDefault();
+                  if (dragIdx !== null && dragIdx !== i) {
+                    setEditSegs(ss => {
+                      const arr = [...ss];
+                      const [item] = arr.splice(dragIdx, 1);
+                      arr.splice(i, 0, item);
+                      return arr;
+                    });
+                  }
+                  setDragIdx(null); setDragOverIdx(null);
+                }}
+              >
                 <div className="edit-row">
+                  <div
+                    className="drag-grip"
+                    draggable
+                    title="Drag to reorder"
+                    onDragStart={e => {
+                      const row = (e.currentTarget as HTMLElement).closest('.edit-seg-block') as HTMLElement;
+                      if (row) e.dataTransfer.setDragImage(row, e.clientX - row.getBoundingClientRect().left, 20);
+                      setDragIdx(i);
+                    }}
+                    onDragEnd={() => { setDragIdx(null); setDragOverIdx(null); }}
+                  >⠿</div>
                   <div
                     className="color-swatch"
                     style={{ background: seg.color }}
@@ -581,7 +635,14 @@ export default function App() {
                   />
                   <div className="dur-ctrl">
                     <button onClick={() => updSeg(seg.id, 'duration', Math.max(1, seg.duration - 1))}>−</button>
-                    <span>{seg.duration}m</span>
+                    <input
+                      type="number"
+                      className="dur-input"
+                      value={seg.duration}
+                      min={1}
+                      onChange={e => { const v = parseInt(e.target.value); if (!isNaN(v) && v >= 1) updSeg(seg.id, 'duration', v); }}
+                    />
+                    <span className="dur-unit">m</span>
                     <button onClick={() => updSeg(seg.id, 'duration', seg.duration + 1)}>+</button>
                   </div>
                   <button className="remove-btn" onClick={() => setEditSegs(ss => ss.filter(s => s.id !== seg.id))}>✕</button>
@@ -693,6 +754,7 @@ export default function App() {
 
           <div className="btn-row">
             <button className="btn ghost" onClick={openEdit}>✎ Edit Segments</button>
+            <button className="btn ghost" onClick={duplicatePreset} title="Copy this preset as a new pacer">⧉ Duplicate</button>
             <button className="btn primary large" onClick={start} disabled={!presetSegments.length}>
               ▶ Start Lesson
             </button>
@@ -701,13 +763,14 @@ export default function App() {
           <div className="instructions">
             <p className="instructions-title">How to use</p>
             <ul>
-              <li>Select a preset for your class length, then click <strong>Start Lesson</strong>.</li>
-              <li>The timer persists even if you switch tabs or your screen sleeps.</li>
-              <li><strong>⏸</strong> pauses. <strong>◀ ▶</strong> jump to adjacent segments.</li>
-              <li><strong>▶+</strong> skips to the next segment and gives the remaining time to subsequent segments.</li>
-              <li><strong>Late −1m</strong> subtracts 1 min from the total clock and scales all remaining segments down proportionally.</li>
-              <li>Drag the dividers in the bar above to manually resize adjacent segments.</li>
-              <li>Click <strong>✎ Edit Segments</strong> to customize. Segments must add up to total class time before saving.</li>
+              <li>Select a preset tab, then click <strong>▶ Start Lesson</strong>.</li>
+              <li>The timer keeps running even if you switch tabs or your screen sleeps.</li>
+              <li><strong>⏸</strong> pauses and resumes. <strong>◀ ▶</strong> jump between segments.</li>
+              <li><strong>▶+</strong> skips to the next segment and distributes leftover time to future segments proportionally.</li>
+              <li><strong>Late −1m</strong> subtracts 1 min from the total and scales all remaining segments down proportionally.</li>
+              <li>Drag the dividers in the colored bar to resize adjacent segments on the fly.</li>
+              <li>Click <strong>✎ Edit Segments</strong> to rename, adjust times, or drag <strong>⠿</strong> to reorder. Segments must sum to total class time before saving.</li>
+              <li><strong>+ New Pacer</strong> creates a blank preset. <strong>⧉ Duplicate</strong> copies the active one.</li>
             </ul>
           </div>
         </div>
