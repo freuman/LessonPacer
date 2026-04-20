@@ -5,29 +5,25 @@ body {
   background: #0f1117;
   color: #e2e8f0;
   min-height: 100vh;
-  overflow: hidden;
 }
 
 #root {
-  height: 100vh;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
 }
 
 .app {
-  height: 100vh;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
 }
 
-/* Editing view — allow scrolling when content exceeds viewport */
-.app.editing {
-  height: auto;
-  min-height: 100vh;
-}
-
-body:has(.app.editing) {
-  overflow-y: auto;
+/* Running and done views lock to the viewport — no scrolling */
+.app.running,
+.app.done {
+  height: 100vh;
+  overflow: hidden;
 }
 
 /* ── Setup / Edit shared card ── */

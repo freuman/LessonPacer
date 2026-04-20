@@ -457,11 +457,6 @@ export default function App() {
   const [dragIdx, setDragIdx] = useState<number | null>(null);
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
 
-  // Allow body to scroll when edit form exceeds viewport height
-  useEffect(() => {
-    document.body.style.overflow = editing ? 'auto' : '';
-    return () => { document.body.style.overflow = ''; };
-  }, [editing]);
 
   const openEdit = () => {
     setEditSegs((activePreset?.segments ?? []).map(s => ({ ...s })));
