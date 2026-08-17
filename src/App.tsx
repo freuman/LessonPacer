@@ -45,6 +45,70 @@ const INITIAL_PRESETS: Preset[] = [
   },
 ];
 
+// ── Chimes ───────────────────────────────────────────────────────────────────
+
+// A chime is a pattern (which event it is) played in a voice (what it sounds
+// like). Keeping the pattern fixed per event preserves its meaning — rising for
+// "move on", a repeated note for "warning", a flourish for "finished" — while
+// the voice controls timbre only.
+
+type ChimeEvent = 'advance' | 'warning' | 'complete';
+
+interface ChimePattern {
+  ratios: number[];  // pitch multipliers against the voice's base frequency
+  dur: number;       // note length in seconds
+  gap: number;       // silence between notes in seconds
+}
+
+interface ChimeVoice {
+  id: string;
+  name: string;
+  wave: OscillatorType;
+  base: number;      // Hz at ratio 1
+  durMult: number;   // stretches/shortens the pattern's note length
+  gapMult: number;
+  gain: number;      // relative loudness — tames harsher waveforms
+}
+
+interface ChimeSettings {
+  volume: number;                        // 0..1 master
+  muted: boolean;
+  voices: Record<ChimeEvent, string>;    // event → voice id
+  enabled: Record<ChimeEvent, boolean>;
+}
+
+const CHIME_PEAK = 0.4; // gain at full volume with a 1.0-gain voice
+
+const CHIME_PATTERNS: Record<ChimeEvent, ChimePattern> = {
+  advance:  { ratios: [1, 1.25],               dur: 0.22, gap: 0.10 },
+  warning:  { ratios: [0.75, 0.75],            dur: 0.20, gap: 0.18 },
+  complete: { ratios: [1, 1.25, 1.5, 1.25, 1], dur: 0.20, gap: 0.08 },
+};
+
+// Classic is deliberately a no-op transform: sine at 880 with 1.0 multipliers
+// reproduces the original hardcoded chimes exactly.
+const CHIME_VOICES: ChimeVoice[] = [
+  { id: 'classic', name: 'Classic', wave: 'sine',     base:  880, durMult: 1.0, gapMult: 1.0, gain: 1.00 },
+  { id: 'bell',    name: 'Bell',    wave: 'triangle', base: 1046, durMult: 2.4, gapMult: 1.1, gain: 0.95 },
+  { id: 'marimba', name: 'Marimba', wave: 'sine',     base: 1174, durMult: 0.5, gapMult: 0.7, gain: 1.00 },
+  { id: 'soft',    name: 'Soft',    wave: 'sine',     base:  523, durMult: 1.6, gapMult: 1.2, gain: 0.70 },
+  { id: 'glass',   name: 'Glass',   wave: 'triangle', base: 1568, durMult: 2.0, gapMult: 0.9, gain: 0.80 },
+  { id: 'alert',   name: 'Alert',   wave: 'square',   base:  740, durMult: 0.8, gapMult: 0.8, gain: 0.45 },
+];
+
+const CHIME_EVENTS: { id: ChimeEvent; label: string }[] = [
+  { id: 'advance',  label: 'Segment change'   },
+  { id: 'warning',  label: '1-minute warning' },
+  { id: 'complete', label: 'Lesson complete'  },
+];
+
+const DEFAULT_CHIMES: ChimeSettings = {
+  volume: 1,
+  muted: false,
+  voices:  { advance: 'classic', warning: 'classic', complete: 'classic' },
+  enabled: { advance: true,      warning: true,      complete: true      },
+};
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function fmt(s: number): string {
@@ -67,23 +131,36 @@ export function unlockAudio() {
   try { getAudioCtx().resume(); } catch { /* ignore */ }
 }
 
-function playTones(freqs: number[], gap = 0.15, dur = 0.22) {
+function playPattern(pat: ChimePattern, voice: ChimeVoice, volume: number) {
+  const peak = CHIME_PEAK * volume * voice.gain;
+  if (peak <= 0) return;
   try {
     const ctx = getAudioCtx();
     ctx.resume().then(() => {
-      freqs.forEach((f, i) => {
+      const dur = pat.dur * voice.durMult;
+      const gap = pat.gap * voice.gapMult;
+      pat.ratios.forEach((r, i) => {
         const osc = ctx.createOscillator();
         const g = ctx.createGain();
         osc.connect(g); g.connect(ctx.destination);
-        osc.frequency.value = f; osc.type = 'sine';
+        osc.frequency.value = voice.base * r; osc.type = voice.wave;
         const t = ctx.currentTime + i * (dur + gap);
         g.gain.setValueAtTime(0, t);
-        g.gain.linearRampToValueAtTime(0.4, t + 0.02);
+        g.gain.linearRampToValueAtTime(peak, t + 0.02);
         g.gain.exponentialRampToValueAtTime(0.001, t + dur);
         osc.start(t); osc.stop(t + dur + 0.05);
       });
     });
   } catch { /* ignore */ }
+}
+
+function voiceById(id: string): ChimeVoice {
+  return CHIME_VOICES.find(v => v.id === id) ?? CHIME_VOICES[0];
+}
+
+function playChime(event: ChimeEvent, s: ChimeSettings) {
+  if (s.muted || !s.enabled[event]) return;
+  playPattern(CHIME_PATTERNS[event], voiceById(s.voices[event]), s.volume);
 }
 
 function loadLS<T>(key: string, fallback: T): T {
@@ -220,8 +297,22 @@ export default function App() {
     return ps.find(p => p.id === lid) ? lid : (ps[0]?.id ?? '');
   });
 
+  // Merged field-by-field so a settings file written by an older build (or one
+  // missing a newly added event) still yields a complete object.
+  const [chimes, setChimes] = useState<ChimeSettings>(() => {
+    const st = loadLS<Partial<ChimeSettings>>('lt-chimes-v1', {});
+    return {
+      volume:  typeof st.volume === 'number' ? Math.min(1, Math.max(0, st.volume)) : DEFAULT_CHIMES.volume,
+      muted:   st.muted ?? DEFAULT_CHIMES.muted,
+      voices:  { ...DEFAULT_CHIMES.voices,  ...(st.voices  ?? {}) },
+      enabled: { ...DEFAULT_CHIMES.enabled, ...(st.enabled ?? {}) },
+    };
+  });
+  const [chimesOpen, setChimesOpen] = useState(false);
+
   useEffect(() => { saveLS('lt-presets-v2', presets); }, [presets]);
   useEffect(() => { saveLS('lt-last-v2', activeId); }, [activeId]);
+  useEffect(() => { saveLS('lt-chimes-v1', chimes); }, [chimes]);
 
   const activePreset = presets.find(p => p.id === activeId) ?? presets[0];
   const presetSegments = activePreset?.segments ?? [];
@@ -240,9 +331,13 @@ export default function App() {
   const dragOriginSegSecs = useRef<number>(0);
   const phaseRef = useRef<Phase>('setup');
   const pausedRef = useRef(false);
+  // The tick interval below is created once, so it must read chime settings
+  // through a ref rather than closing over stale state.
+  const chimesRef = useRef<ChimeSettings>(chimes);
 
   useEffect(() => { liveSegsRef.current = liveSegs; }, [liveSegs]);
   useEffect(() => { phaseRef.current = phase; }, [phase]);
+  useEffect(() => { chimesRef.current = chimes; }, [chimes]);
   // Note: pausedRef is updated synchronously in togglePause to avoid race conditions
 
   // Single long-lived interval — all timing derived from wall clock
@@ -265,20 +360,20 @@ export default function App() {
 
       if (segSecs <= 0) {
         setPhase('done');
-        playTones([880, 1100, 1320, 1100, 880], 0.08, 0.2);
+        playChime('complete', chimesRef.current);
         return;
       }
 
       if (advanced) {
         ts.current = { snapAt: Date.now(), segIdx, segSecs, totalSecs, warnedId: null };
         setWarning(false);
-        playTones([880, 1100], 0.1, 0.22);
+        playChime('advance', chimesRef.current);
       } else {
         const segId = segs[segIdx]?.id;
         if (segSecs <= 61 && segSecs > 59 && ts.current.warnedId !== segId) {
           ts.current.warnedId = segId ?? null;
           setWarning(true);
-          playTones([660, 660], 0.18, 0.2);
+          playChime('warning', chimesRef.current);
           setTimeout(() => setWarning(false), 4000);
         }
       }
@@ -379,7 +474,7 @@ export default function App() {
       warnedId: null,
     };
     setWarning(false);
-    playTones([880, 1100], 0.1, 0.22);
+    playChime('advance', chimesRef.current);
     setTick(n => n + 1);
   };
 
@@ -744,6 +839,83 @@ export default function App() {
             </button>
           </div>
 
+          <div className="chimes-panel">
+            <button
+              className="chimes-toggle"
+              onClick={() => setChimesOpen(o => !o)}
+              aria-expanded={chimesOpen}
+            >
+              <span>{chimes.muted ? '🔕' : '🔔'} Chimes</span>
+              <span className="chimes-chevron">{chimesOpen ? '▾' : '▸'}</span>
+            </button>
+
+            {chimesOpen && (
+              <div className="chimes-body">
+                <div className="chime-master">
+                  <label className="chime-check">
+                    <input
+                      type="checkbox"
+                      checked={!chimes.muted}
+                      onChange={e => setChimes(c => ({ ...c, muted: !e.target.checked }))}
+                    />
+                    <span>Sound on</span>
+                  </label>
+                  <div className="chime-vol">
+                    <span className="chime-vol-label">Volume</span>
+                    <input
+                      type="range" min={0} max={100} step={5}
+                      value={Math.round(chimes.volume * 100)}
+                      disabled={chimes.muted}
+                      onChange={e => setChimes(c => ({ ...c, volume: Number(e.target.value) / 100 }))}
+                    />
+                    <span className="chime-vol-num">{Math.round(chimes.volume * 100)}%</span>
+                  </div>
+                </div>
+
+                <div className="chime-rows">
+                  {CHIME_EVENTS.map(ev => {
+                    const off = chimes.muted || !chimes.enabled[ev.id];
+                    return (
+                      <div key={ev.id} className={`chime-row${off ? ' off' : ''}`}>
+                        <label className="chime-check">
+                          <input
+                            type="checkbox"
+                            checked={chimes.enabled[ev.id]}
+                            disabled={chimes.muted}
+                            onChange={e => setChimes(c => ({
+                              ...c, enabled: { ...c.enabled, [ev.id]: e.target.checked },
+                            }))}
+                          />
+                          <span className="chime-row-name">{ev.label}</span>
+                        </label>
+                        <select
+                          className="chime-select"
+                          value={chimes.voices[ev.id]}
+                          disabled={off}
+                          onChange={e => setChimes(c => ({
+                            ...c, voices: { ...c.voices, [ev.id]: e.target.value },
+                          }))}
+                        >
+                          {CHIME_VOICES.map(v => (
+                            <option key={v.id} value={v.id}>{v.name}</option>
+                          ))}
+                        </select>
+                        <button
+                          className="chime-preview"
+                          disabled={off}
+                          title={`Preview the ${ev.label.toLowerCase()} chime`}
+                          onClick={() => { unlockAudio(); playChime(ev.id, chimes); }}
+                        >
+                          ▶
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+
           <div className="instructions">
             <p className="instructions-title">How to use</p>
             <ul>
@@ -755,6 +927,7 @@ export default function App() {
               <li>Drag the dividers in the colored bar to resize adjacent segments on the fly.</li>
               <li>Click <strong>✎ Edit Segments</strong> to rename, adjust times, or drag <strong>⠿</strong> to reorder. Segments must sum to total class time before saving.</li>
               <li><strong>+ New Pacer</strong> creates a blank preset. <strong>⧉ Duplicate</strong> copies the active one.</li>
+              <li>Open <strong>🔔 Chimes</strong> to set the volume, pick a sound for each alert, or switch any of them off. Press <strong>▶</strong> to hear one.</li>
             </ul>
           </div>
         </div>

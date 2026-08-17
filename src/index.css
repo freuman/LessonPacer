@@ -723,6 +723,150 @@ h1.app-title {
   border-radius: 20px;
 }
 
+/* ── Chimes panel ── */
+.chimes-panel {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid #1e2330;
+}
+
+.chimes-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 6px 0;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #475569;
+  transition: color 0.15s;
+}
+.chimes-toggle:hover { color: #94a3b8; }
+
+.chimes-chevron { font-size: 0.7rem; }
+
+.chimes-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.chime-master {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #1e2330;
+}
+
+.chime-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: #94a3b8;
+}
+.chime-check input { accent-color: #3b82f6; cursor: pointer; }
+.chime-check input:disabled { cursor: not-allowed; }
+
+.chime-vol {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.chime-vol-label {
+  font-size: 0.85rem;
+  color: #94a3b8;
+}
+
+.chime-vol input[type='range'] {
+  width: 130px;
+  accent-color: #3b82f6;
+  cursor: pointer;
+}
+.chime-vol input[type='range']:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.chime-vol-num {
+  font-size: 0.8rem;
+  color: #64748b;
+  min-width: 36px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.chime-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.chime-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: opacity 0.15s;
+}
+.chime-row.off { opacity: 0.45; }
+
+.chime-row .chime-check { flex: 1; min-width: 0; }
+
+.chime-row-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chime-select {
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: #0f1523;
+  color: #cbd5e1;
+  border: 2px solid #334155;
+  font-family: inherit;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+.chime-select:hover:not(:disabled) { border-color: #475569; }
+.chime-select:disabled { cursor: not-allowed; }
+
+.chime-preview {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: transparent;
+  color: #60a5fa;
+  border: 2px solid #334155;
+  font-size: 0.7rem;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+.chime-preview:hover:not(:disabled) { background: #1e3a5f; border-color: #3b82f6; }
+.chime-preview:disabled { cursor: not-allowed; color: #475569; }
+
+@media (max-width: 480px) {
+  .chime-master { flex-direction: column; align-items: stretch; gap: 12px; }
+  .chime-vol input[type='range'] { flex: 1; width: auto; }
+  .chime-select { flex: 1; min-width: 0; }
+  .chime-row .chime-check { flex: 0 1 auto; }
+}
+
 /* ── Instructions ── */
 .instructions {
   margin-top: 32px;
